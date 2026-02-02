@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Метод резольвенты для задачи трёх тел</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <div class="hero__content">
+      <p class="eyebrow">Визуализация для GitHub Pages</p>
+      <h1>Применение метода резольвенты к классической задаче трёх тел</h1>
+      <p class="lead">
+        Идея Ремизова реализуется численно: движение разбивается на множество
+        малых шагов, каждый из которых решается как локальная линейная система.
+        Ниже — симплектический «kick-drift-kick» шаг и его композиция во времени.
+      </p>
+      <div class="hero__actions">
+        <button id="toggle" class="button button--primary">Пуск</button>
+        <button id="reset" class="button button--ghost">Сброс</button>
+      </div>
+      <div class="stats">
+        <div>
+          <span class="label">Δt</span>
+          <span id="dtValue" class="value">0.01</span>
+        </div>
+        <div>
+          <span class="label">Шаги</span>
+          <span id="stepValue" class="value">0</span>
+        </div>
+        <div>
+          <span class="label">Энергия</span>
+          <span id="energyValue" class="value">0</span>
+        </div>
+      </div>
+    </div>
+    <div class="hero__canvas">
+      <canvas id="orbitCanvas" width="720" height="520" aria-label="Орбиты трёх тел"></canvas>
+      <div class="legend">
+        <span><i class="dot dot--one"></i> тело m₁</span>
+        <span><i class="dot dot--two"></i> тело m₂</span>
+        <span><i class="dot dot--three"></i> тело m₃</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Локальная резольвента (один шаг)</h2>
+      <p>
+        На шаге Δt ускорения считаются постоянными, а движение приближается
+        линейной системой. Симплектический вариант разбивает шаг на полуприкиды:
+      </p>
+      <div class="equations">
+        <div>
+          <span class="tag">Kick</span>
+          <code>v ← v + ½·a(r)·Δt</code>
+        </div>
+        <div>
+          <span class="tag">Drift</span>
+          <code>r ← r + v·Δt</code>
+        </div>
+        <div>
+          <span class="tag">Kick</span>
+          <code>v ← v + ½·a(r)·Δt</code>
+        </div>
+      </div>
+      <p class="note">
+        Композиция таких шагов при Δt → 0 реализует идею «бесконечной киноленты»
+        Ремизова, а формула Ли–Троттера гарантирует сходимость.
+      </p>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h3>Разбиение оператора</h3>
+        <p>
+          Движение разделено на оператор свободного хода (A) и оператор сил (B).
+          Их чередование имитирует экспоненту <code>e^{(A+B)Δt}</code>.
+        </p>
+        <ul>
+          <li><strong>A:</strong> <code>ṙ = v, v̇ = 0</code></li>
+          <li><strong>B:</strong> <code>ṙ = 0, v̇ = F(r)</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Контроль точности</h3>
+        <p>
+          Уменьшайте Δt, чтобы повышать точность. Визуально видно сохранение
+          структуры орбит и энергию, характерную для симплектических методов.
+        </p>
+        <label for="dtRange">Шаг Δt</label>
+        <input id="dtRange" type="range" min="0.002" max="0.03" step="0.002" value="0.01" />
+      </div>
+      <div class="card">
+        <h3>Алгоритм композиции</h3>
+        <ol>
+          <li>Вычислить ускорения от всех пар тел.</li>
+          <li>Сделать полушаг для скоростей.</li>
+          <li>Обновить координаты по новым скоростям.</li>
+          <li>Пересчитать ускорения и завершить полушаг.</li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      Визуализация иллюстрирует идею: локальные линейные шаги (резольвенты)
+      компонуются в глобальное решение задачи трёх тел.
+    </p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
