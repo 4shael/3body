@@ -6,12 +6,21 @@ const resetButton = document.getElementById("reset");
 const dtRange = document.getElementById("dtRange");
 const speedRange = document.getElementById("speedRange");
 const dtValue = document.getElementById("dtValue");
+const dtRangeValue = document.getElementById("dtRangeValue");
 const stepValue = document.getElementById("stepValue");
 const energyValue = document.getElementById("energyValue");
 const speedValue = document.getElementById("speedValue");
 const applyInitialButton = document.getElementById("applyInitial");
 const randomizeInitialButton = document.getElementById("randomizeInitial");
 const initialConditionInputs = Array.from(document.querySelectorAll(".ic-input"));
+
+const initialConditionFieldLabels = {
+  m: "m (масса)",
+  x: "x (координата)",
+  y: "y (координата)",
+  vx: "vₓ (скорость)",
+  vy: "vᵧ (скорость)"
+};
 
 const defaultInitialConditions = [
   { m: 1.2, x: -0.6, y: 0.2, vx: 0.0, vy: -0.42 },
@@ -327,6 +336,9 @@ function drawFrame() {
   });
 
   dtValue.textContent = state.dt.toFixed(4);
+  if (dtRangeValue) {
+    dtRangeValue.textContent = state.dt.toFixed(4);
+  }
   stepValue.textContent = state.step.toString();
   energyValue.textContent = computeEnergy().toFixed(3);
 }
@@ -395,6 +407,15 @@ applyInitialButton?.addEventListener("click", applyInitialConditions);
 randomizeInitialButton?.addEventListener("click", randomizeInitialConditions);
 
 setInitialConditionInputs(state.initialConditions);
+initialConditionInputs.forEach((input) => {
+  if (input.title) return;
+  const field = input.dataset.field;
+  const index = Number.parseInt(input.dataset.body ?? "", 10);
+  if (!field || !Number.isInteger(index)) return;
+  const label = initialConditionFieldLabels[field];
+  if (!label) return;
+  input.title = `Тело ${index + 1}: ${label}`;
+});
 updateSpeed({ target: speedRange ?? { value: state.stepsPerFrame.toString() } });
 reset();
 requestAnimationFrame(animate);
