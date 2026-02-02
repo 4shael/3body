@@ -92,6 +92,8 @@
         </p>
         <label for="dtRange">Шаг Δt</label>
         <input id="dtRange" type="range" min="0.002" max="0.03" step="0.002" value="0.01" />
+        <label for="speedRange">Скорость анимации <span id="speedValue" class="inline-value">2×</span></label>
+        <input id="speedRange" type="range" min="1" max="12" step="1" value="2" />
       </div>
       <div class="card">
         <h3>Алгоритм композиции</h3>
@@ -101,6 +103,46 @@
           <li>Обновить координаты по новым скоростям.</li>
           <li>Пересчитать ускорения и завершить полушаг.</li>
         </ol>
+      </div>
+      <div class="card card--full">
+        <h3>Начальные условия</h3>
+        <p class="note">
+          Задайте массы, координаты и скорости тел. Нажмите «Применить», чтобы
+          перезапустить интегрирование с новыми значениями.
+        </p>
+        <div class="ic-grid" role="group" aria-label="Начальные условия трёх тел">
+          <div class="ic-grid__header"></div>
+          <div class="ic-grid__header">m</div>
+          <div class="ic-grid__header">x</div>
+          <div class="ic-grid__header">y</div>
+          <div class="ic-grid__header">vₓ</div>
+          <div class="ic-grid__header">vᵧ</div>
+
+          <div class="ic-grid__label"><i class="dot dot--one"></i>m₁</div>
+          <input class="ic-input" id="ic-0-m" type="number" step="0.01" min="0.1" value="1.2" data-body="0" data-field="m" aria-label="m1" />
+          <input class="ic-input" id="ic-0-x" type="number" step="0.01" value="-0.6" data-body="0" data-field="x" aria-label="x1" />
+          <input class="ic-input" id="ic-0-y" type="number" step="0.01" value="0.2" data-body="0" data-field="y" aria-label="y1" />
+          <input class="ic-input" id="ic-0-vx" type="number" step="0.01" value="0.0" data-body="0" data-field="vx" aria-label="vx1" />
+          <input class="ic-input" id="ic-0-vy" type="number" step="0.01" value="-0.42" data-body="0" data-field="vy" aria-label="vy1" />
+
+          <div class="ic-grid__label"><i class="dot dot--two"></i>m₂</div>
+          <input class="ic-input" id="ic-1-m" type="number" step="0.01" min="0.1" value="1.0" data-body="1" data-field="m" aria-label="m2" />
+          <input class="ic-input" id="ic-1-x" type="number" step="0.01" value="0.6" data-body="1" data-field="x" aria-label="x2" />
+          <input class="ic-input" id="ic-1-y" type="number" step="0.01" value="-0.1" data-body="1" data-field="y" aria-label="y2" />
+          <input class="ic-input" id="ic-1-vx" type="number" step="0.01" value="0.0" data-body="1" data-field="vx" aria-label="vx2" />
+          <input class="ic-input" id="ic-1-vy" type="number" step="0.01" value="0.5" data-body="1" data-field="vy" aria-label="vy2" />
+
+          <div class="ic-grid__label"><i class="dot dot--three"></i>m₃</div>
+          <input class="ic-input" id="ic-2-m" type="number" step="0.01" min="0.1" value="0.8" data-body="2" data-field="m" aria-label="m3" />
+          <input class="ic-input" id="ic-2-x" type="number" step="0.01" value="0.0" data-body="2" data-field="x" aria-label="x3" />
+          <input class="ic-input" id="ic-2-y" type="number" step="0.01" value="0.55" data-body="2" data-field="y" aria-label="y3" />
+          <input class="ic-input" id="ic-2-vx" type="number" step="0.01" value="-0.55" data-body="2" data-field="vx" aria-label="vx3" />
+          <input class="ic-input" id="ic-2-vy" type="number" step="0.01" value="0.0" data-body="2" data-field="vy" aria-label="vy3" />
+        </div>
+        <div class="form-actions">
+          <button id="applyInitial" class="button button--primary">Применить</button>
+          <button id="randomizeInitial" class="button button--ghost">Случайные</button>
+        </div>
       </div>
     </section>
   </main>
