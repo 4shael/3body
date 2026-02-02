@@ -5,13 +5,16 @@ const toggleButton = document.getElementById("toggle");
 const resetButton = document.getElementById("reset");
 const dtRange = document.getElementById("dtRange");
 const speedRange = document.getElementById("speedRange");
+const scaleRange = document.getElementById("scaleRange");
 const dtValue = document.getElementById("dtValue");
 const dtRangeValue = document.getElementById("dtRangeValue");
 const stepValue = document.getElementById("stepValue");
 const energyValue = document.getElementById("energyValue");
 const speedValue = document.getElementById("speedValue");
+const scaleValue = document.getElementById("scaleValue");
 const applyInitialButton = document.getElementById("applyInitial");
 const randomizeInitialButton = document.getElementById("randomizeInitial");
+const shareInitialButton = document.getElementById("shareInitial");
 const initialConditionInputs = Array.from(document.querySelectorAll(".ic-input"));
 
 const initialConditionFieldLabels = {
@@ -35,12 +38,20 @@ const state = {
   dt: parseFloat(dtRange.value),
   stepsPerFrame: parseInt(speedRange?.value ?? "2", 10),
   softening: 0.02,
-  scale: 140,
+  scale: Number.parseFloat(scaleRange?.value ?? "140"),
+  pan: { x: 0, y: 0 },
   initialConditions: defaultInitialConditions.map((body) => ({ ...body })),
   bodies: []
 };
 
 const colors = ["#ffd86b", "#ff7b72", "#7ad3ff"];
+
+const dragState = {
+  active: false,
+  pointerId: null,
+  lastClientX: 0,
+  lastClientY: 0
+};
 
 function createBodiesFromConditions(conditions) {
   return conditions.map((body) => ({
@@ -101,6 +112,137 @@ function readInitialConditionsFromInputs() {
   });
 
   return { conditions, errors };
+}
+
+function clampNumber(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function formatParam(value) {
+  if (!Number.isFinite(value)) return "0";
+  const rounded = Math.round(value * 1e6) / 1e6;
+  return rounded.toString();
+}
+
+function encodeInitialConditions(conditions) {
+  return conditions
+    .map((body) => [body.m, body.x, body.y, body.vx, body.vy].map(formatParam).join(","))
+    .join(";");
+}
+
+function parseInitialConditionsParam(value) {
+  if (!value) return null;
+  const bodies = value
+    .split(";")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  if (bodies.length !== 3) return null;
+
+  const parsed = bodies.map((entry) => {
+    const parts = entry.split(",").map((part) => part.trim());
+    if (parts.length !== 5) return null;
+    const numbers = parts.map((part) => Number.parseFloat(part));
+    if (numbers.some((number) => !Number.isFinite(number))) return null;
+    const [m, x, y, vx, vy] = numbers;
+    if (m <= 0) return null;
+    return { m, x, y, vx, vy };
+  });
+
+  if (parsed.some((body) => body === null)) return null;
+  return parsed;
+}
+
+function applyRangeValue(rangeEl, value) {
+  if (!rangeEl) return value;
+  const min = Number.parseFloat(rangeEl.min);
+  const max = Number.parseFloat(rangeEl.max);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return value;
+  const clamped = clampNumber(value, min, max);
+  rangeEl.value = clamped.toString();
+  return clamped;
+}
+
+function applyIntegerRangeValue(rangeEl, value) {
+  if (!rangeEl) return value;
+  const min = Number.parseInt(rangeEl.min, 10);
+  const max = Number.parseInt(rangeEl.max, 10);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return value;
+  const clamped = clampNumber(value, min, max);
+  const rounded = Math.round(clamped);
+  rangeEl.value = rounded.toString();
+  return rounded;
+}
+
+function buildShareUrl(conditions) {
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.hash = "";
+
+  url.searchParams.set("v", "1");
+  url.searchParams.set("ic", encodeInitialConditions(conditions));
+  url.searchParams.set("dt", formatParam(state.dt));
+  url.searchParams.set("spf", state.stepsPerFrame.toString());
+  url.searchParams.set("sc", formatParam(state.scale));
+
+  return url.toString();
+}
+
+function loadSharedParametersFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+
+  const icParam = params.get("ic");
+  if (icParam) {
+    const parsed = parseInitialConditionsParam(icParam);
+    if (parsed) {
+      state.initialConditions = parsed;
+    }
+  }
+
+  const dtParam = Number.parseFloat(params.get("dt"));
+  if (Number.isFinite(dtParam)) {
+    state.dt = applyRangeValue(dtRange, dtParam);
+  }
+
+  const spfParam = Number.parseInt(params.get("spf") ?? "", 10);
+  if (Number.isFinite(spfParam)) {
+    state.stepsPerFrame = applyIntegerRangeValue(speedRange, spfParam);
+  }
+
+  const scaleParam = Number.parseFloat(params.get("sc"));
+  if (Number.isFinite(scaleParam)) {
+    state.scale = applyRangeValue(scaleRange, scaleParam);
+  }
+}
+
+async function copyTextToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function shareInitialParameters() {
+  const { conditions, errors } = readInitialConditionsFromInputs();
+  if (errors.length > 0) {
+    alert([...new Set(errors)].join("\n"));
+    return;
+  }
+
+  const shareUrl = buildShareUrl(conditions);
+  const copied = await copyTextToClipboard(shareUrl);
+  if (!copied) {
+    prompt("Ссылка для копирования:", shareUrl);
+    return;
+  }
+
+  if (!shareInitialButton) return;
+  const originalText = shareInitialButton.textContent;
+  shareInitialButton.textContent = "Скопировано";
+  window.setTimeout(() => {
+    shareInitialButton.textContent = originalText;
+  }, 1200);
 }
 
 function normalizeConditions(conditions) {
@@ -301,8 +443,8 @@ function drawFrame() {
   ctx.fillStyle = "#0b0e17";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2;
+  const centerX = canvas.width / 2 + state.pan.x;
+  const centerY = canvas.height / 2 + state.pan.y;
 
   state.bodies.forEach((body, index) => {
     ctx.beginPath();
@@ -373,6 +515,48 @@ function updateSpeed(event) {
   }
 }
 
+function updateScale(event) {
+  state.scale = Number.parseFloat(event.target.value);
+  if (scaleValue) {
+    scaleValue.textContent = state.scale >= 10 ? state.scale.toFixed(0) : state.scale.toFixed(2);
+  }
+}
+
+function handlePointerDown(event) {
+  if (event.button !== 0) return;
+  dragState.active = true;
+  dragState.pointerId = event.pointerId;
+  dragState.lastClientX = event.clientX;
+  dragState.lastClientY = event.clientY;
+  canvas.classList.add("is-dragging");
+  canvas.setPointerCapture(event.pointerId);
+}
+
+function handlePointerMove(event) {
+  if (!dragState.active || event.pointerId !== dragState.pointerId) return;
+
+  const dxClient = event.clientX - dragState.lastClientX;
+  const dyClient = event.clientY - dragState.lastClientY;
+  dragState.lastClientX = event.clientX;
+  dragState.lastClientY = event.clientY;
+
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  state.pan.x += dxClient * scaleX;
+  state.pan.y += dyClient * scaleY;
+}
+
+function endPointerDrag(event) {
+  if (!dragState.active || event.pointerId !== dragState.pointerId) return;
+  dragState.active = false;
+  dragState.pointerId = null;
+  canvas.classList.remove("is-dragging");
+  if (canvas.hasPointerCapture(event.pointerId)) {
+    canvas.releasePointerCapture(event.pointerId);
+  }
+}
+
 function applyInitialConditions() {
   const { conditions, errors } = readInitialConditionsFromInputs();
   if (errors.length > 0) {
@@ -403,9 +587,17 @@ resetButton.addEventListener("click", () => {
 
 dtRange.addEventListener("input", updateDt);
 speedRange?.addEventListener("input", updateSpeed);
+scaleRange?.addEventListener("input", updateScale);
 applyInitialButton?.addEventListener("click", applyInitialConditions);
 randomizeInitialButton?.addEventListener("click", randomizeInitialConditions);
+shareInitialButton?.addEventListener("click", shareInitialParameters);
 
+canvas.addEventListener("pointerdown", handlePointerDown);
+canvas.addEventListener("pointermove", handlePointerMove);
+canvas.addEventListener("pointerup", endPointerDrag);
+canvas.addEventListener("pointercancel", endPointerDrag);
+
+loadSharedParametersFromUrl();
 setInitialConditionInputs(state.initialConditions);
 initialConditionInputs.forEach((input) => {
   if (input.title) return;
@@ -417,5 +609,6 @@ initialConditionInputs.forEach((input) => {
   input.title = `Тело ${index + 1}: ${label}`;
 });
 updateSpeed({ target: speedRange ?? { value: state.stepsPerFrame.toString() } });
+updateScale({ target: scaleRange ?? { value: state.scale.toString() } });
 reset();
 requestAnimationFrame(animate);
