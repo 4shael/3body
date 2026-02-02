@@ -21,6 +21,7 @@ const defaultInitialConditions = [
 
 const state = {
   running: false,
+  hasStarted: false,
   step: 0,
   dt: parseFloat(dtRange.value),
   stepsPerFrame: parseInt(speedRange?.value ?? "2", 10),
@@ -158,6 +159,7 @@ function generateRandomInitialConditions() {
 
 function reset() {
   state.bodies = createBodiesFromConditions(state.initialConditions);
+  state.hasStarted = false;
   state.step = 0;
   drawFrame();
 }
@@ -233,6 +235,58 @@ function updateTrails() {
   });
 }
 
+function drawVelocityArrows(centerX, centerY) {
+  const arrowScale = state.scale * 0.9;
+  const maxLength = 140;
+  const headLength = 11;
+  const headAngle = Math.PI / 7;
+
+  state.bodies.forEach((body, index) => {
+    let dx = body.v.x * arrowScale;
+    let dy = body.v.y * arrowScale;
+    const length = Math.hypot(dx, dy);
+    if (length < 6) return;
+    if (length > maxLength) {
+      const k = maxLength / length;
+      dx *= k;
+      dy *= k;
+    }
+
+    const startX = centerX + body.r.x * state.scale;
+    const startY = centerY + body.r.y * state.scale;
+    const endX = startX + dx;
+    const endY = startY + dy;
+    const angle = Math.atan2(dy, dx);
+
+    ctx.save();
+    ctx.strokeStyle = `${colors[index]}cc`;
+    ctx.fillStyle = `${colors[index]}cc`;
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(endX, endY);
+    ctx.lineTo(
+      endX - headLength * Math.cos(angle - headAngle),
+      endY - headLength * Math.sin(angle - headAngle)
+    );
+    ctx.lineTo(
+      endX - headLength * Math.cos(angle + headAngle),
+      endY - headLength * Math.sin(angle + headAngle)
+    );
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  });
+}
+
 function drawFrame() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#0b0e17";
@@ -256,6 +310,10 @@ function drawFrame() {
     ctx.lineWidth = 1.5;
     ctx.stroke();
   });
+
+  if (!state.hasStarted) {
+    drawVelocityArrows(centerX, centerY);
+  }
 
   state.bodies.forEach((body, index) => {
     const x = centerX + body.r.x * state.scale;
@@ -286,6 +344,9 @@ function animate() {
 
 function toggleRunning() {
   state.running = !state.running;
+  if (state.running) {
+    state.hasStarted = true;
+  }
   toggleButton.textContent = state.running ? "Пауза" : "Пуск";
 }
 
