@@ -326,7 +326,7 @@ function drawFrame() {
     ctx.stroke();
   });
 
-  dtValue.textContent = state.dt.toFixed(3);
+  dtValue.textContent = state.dt.toFixed(4);
   stepValue.textContent = state.step.toString();
   energyValue.textContent = computeEnergy().toFixed(3);
 }
